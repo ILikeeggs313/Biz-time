@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-modules": "^0.0.1",
+    "pg": "^8.9.0",
+    "slugify": "^1.6.5"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "biz-time",
+  "version": "1.0.0",
+  "main": "app.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
