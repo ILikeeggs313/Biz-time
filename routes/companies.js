@@ -18,14 +18,25 @@ router.get('/', async function(req, res, next) {
 router.get('/:code', async (req, res, next)=> {
     try{
         const companiesQuery = await db.query(
-            "SELECT code FROM companies WHERE code = $1", [req.params.code]);
-      
-          if (companiesQuery.rows.length === 0) {
+            "SELECT * FROM companies WHERE code = $1", [req.params.code]);
+        const industriesQuery = await db.query('SELECT name FROM industries WHERE code = $1',
+        [req.params.code]);
+        //added an additional route where we get the industry code along with the company
+            //throw an error if no industries are found
+            if(industriesQuery.rows.length === 0){
+                throw new ExpressError(`There is no company with industry ${code}`, 404)
+            }
+            if (companiesQuery.rows.length === 0) {
             let notFoundError = new Error(`There is no companies with code '${req.params.code}`);
             notFoundError.status = 404;
             throw notFoundError;
     }
-    return res.json({ companies: companiesQuery.rows[0] });
+    const companies = companiesQuery.rows[0];
+    companies.industries = industriesQuery.rows;
+
+    res.send(companies);
+    return res.json(companiesQuery.rows[0]);
+
     } catch(e){
         return next (e)
     }
@@ -35,6 +46,7 @@ router.get('/:code', async (req, res, next)=> {
 router.post("/", async function(req, res,next) {
     try{
         let {name, description} = req.body;
+        //added slugify to avoid weird punctuations
         let code = slugify(name, {lower: true});
         const result = await db.query(
             `INSERT INTO companies(code, name, description)

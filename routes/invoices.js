@@ -50,16 +50,43 @@ router.post('/', async function(req, res, next){
 
 router.patch('/:id', async function(req, res, next){
     try{
-        let {comp_code, amt} = req.body;
+        //let's first get the paid_date result
+        let {amt,paid, comp_code} = req.body;
         let {id} = req.params;
-        let result = await db.query(`UPDATE invoices SET comp_code
-        = $1, amt = $2 WHERE id = $3`, [comp_code, amt, id]);
+        //let's set paidDate = null
+        let paidDate = null;
+        const paidDateResult = db.query(`SELECT paid FROM invoices
+        WHERE id = $1`, [id]);
+        //throw an error if there is no paid invoice
+        if(paidDateResult.rows.length === 0){
+            throw new ExpressError(`no invoices found at ${id}`, 404)
+        }
+        //otherwise, set currentPaidDate same as the paid_date from invoice
+        let currentPaidDate = paidDateResult.rows[0].paid_date;
+
+        //if there is no current paid date and the invoice is paid, set is as today
+        if(!currentPaidDate && paid){
+            paidDate = new Date();
+        }   else if (!paid){
+            paidDate = null;
+        } 
+
+        //if it is already paid and there is a paid date, then dont change
+        paidDate = currentPaidDate;
+
+
+        let invoicesResult = await db.query(`UPDATE invoices SET comp_code
+        = $1, amt = $2 WHERE id = $3 
+        RETURNING id, amt, paid, add_date, paid_date, paid`, 
+        [comp_code, amt, id]);
         //throw a 404 if no invoices are found
         if(result.rows.length === 0){
             throw new ExpressError(`no invoices are found ${id}`, 404)
         }
+        
+        
         //otherwise just show the updated result
-        return res.json( {"invoice": result.rows[0]} )
+        return res.json( {"invoice": invoicesResult.rows[0]} )
     
     } catch(e){
         return next(e)
